@@ -7,7 +7,8 @@ export async function POST(
 	_request: Request,
 	{ params }: { params: Promise<{ slug: string }> }
 ) {
-	const { slug } = await params;
+	const { slug: rawSlug } = await params;
+	const slug = rawSlug.replace(/\.git$/, "");
 
 	const skill = getSkills().find((s) => s.slug === slug);
 	if (!skill) {

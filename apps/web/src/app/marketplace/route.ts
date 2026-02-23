@@ -11,7 +11,7 @@ export function GET(request: Request) {
 		name: skill.slug,
 		source: {
 			source: "url",
-			url: `${origin}/api/git/${skill.slug}`,
+			url: `${origin}/api/git/${skill.slug}.git`,
 		},
 		description: skill.description,
 		version: skill.version,

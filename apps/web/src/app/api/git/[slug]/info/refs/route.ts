@@ -7,13 +7,14 @@ export async function GET(
 	request: Request,
 	{ params }: { params: Promise<{ slug: string }> }
 ) {
-	const { slug } = await params;
+	const { slug: rawSlug } = await params;
 	const { searchParams } = new URL(request.url);
 
 	if (searchParams.get("service") !== "git-upload-pack") {
 		return new Response("Not Found", { status: 404 });
 	}
 
+	const slug = rawSlug.replace(/\.git$/, "");
 	const skill = getSkills().find((s) => s.slug === slug);
 	if (!skill) {
 		return new Response("Not Found", { status: 404 });
