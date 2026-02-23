@@ -1,0 +1,24 @@
+{
+  "name": "@skills/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@skills/db": "workspace:*",
+    "@skills/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@skills/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
