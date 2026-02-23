@@ -32,7 +32,7 @@ export default function MarketplaceBrowser({
 	});
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col overflow-auto">
+		<div className="flex flex-col">
 			<div className="sticky top-0 z-10 border-b bg-background px-6 py-3">
 				<div className="mx-auto max-w-4xl space-y-3">
 					<Input

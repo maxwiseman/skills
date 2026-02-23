@@ -118,6 +118,16 @@
 	--radius-4xl: calc(var(--radius) + 16px);
 }
 
+.category-pill {
+	color: oklch(0.4 0.14 var(--hue));
+	background: oklch(0.94 0.04 var(--hue));
+}
+
+.dark .category-pill {
+	color: oklch(0.78 0.13 var(--hue));
+	background: oklch(0.26 0.04 var(--hue));
+}
+
 @layer base {
 	* {
 		@apply border-border outline-ring/50;

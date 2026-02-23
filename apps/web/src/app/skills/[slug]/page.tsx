@@ -4,7 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import CopyButton from "@/components/copy-button";
 import SkillContent from "@/components/skill-content";
-import { getMarketplaceConfig, getSkills } from "@/lib/skills";
+import { SkillFileTree } from "@/components/skill-file-tree";
+import { getMarketplaceConfig, getSkillFiles, getSkills } from "@/lib/skills";
 
 export const dynamic = "force-static";
 
@@ -36,19 +37,7 @@ export default async function SkillPage({ params }: Props) {
 
 	const config = getMarketplaceConfig();
 	const installCmd = `/plugin install ${skill.slug}@${config.name}`;
-
-	const CATEGORY_COLORS: Record<string, string> = {
-		quality: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-		git: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-		debugging: "bg-red-500/10 text-red-600 dark:text-red-400",
-		performance: "bg-green-500/10 text-green-600 dark:text-green-400",
-		testing: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
-		documentation: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
-		general: "bg-muted text-muted-foreground",
-	};
-
-	const categoryColor =
-		CATEGORY_COLORS[skill.category] ?? CATEGORY_COLORS.general;
+	const files = getSkillFiles(skill.slug).filter((f) => f.path !== "SKILL.md");
 
 	return (
 		<div className="px-6 py-6">
@@ -62,14 +51,10 @@ export default async function SkillPage({ params }: Props) {
 				</Link>
 
 				<div className="mb-6">
-					<div className="mb-2 flex flex-wrap items-center gap-3">
+					<div className="mb-2 flex flex-wrap items-baseline gap-3">
 						<h1 className="font-mono font-semibold text-2xl">/{skill.slug}</h1>
-						<span
-							className={`rounded-full px-2.5 py-0.5 text-xs capitalize ${categoryColor}`}
-						>
-							{skill.category}
-						</span>
-						<span className="text-muted-foreground text-xs">
+						{/*<CategoryPill category={skill.category} className="px-2.5 py-0.5" />*/}
+						<span className="font-mono text-muted-foreground text-sm">
 							v{skill.version}
 						</span>
 					</div>
@@ -95,6 +80,12 @@ export default async function SkillPage({ params }: Props) {
 						<CopyButton text={installCmd} />
 					</div>
 				</div>
+
+				{files.length > 0 && (
+					<div className="mb-6">
+						<SkillFileTree files={files} />
+					</div>
+				)}
 
 				<div className="border-t pt-6">
 					<SkillContent content={skill.content} />

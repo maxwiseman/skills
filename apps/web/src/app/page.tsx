@@ -9,7 +9,7 @@ export default function Home() {
 	const categories = getCategories(skills);
 
 	return (
-		<div className="flex min-h-0 flex-col overflow-hidden">
+		<div className="flex flex-col">
 			<div className="border-b px-6 py-8">
 				<div className="mx-auto max-w-4xl">
 					<div className="mb-1 flex items-center gap-2">

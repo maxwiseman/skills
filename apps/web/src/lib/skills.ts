@@ -4,6 +4,8 @@ import { parse as parseYaml } from "yaml";
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
 
+export { CATEGORY_HEX } from "./categories";
+
 export interface CodexTool {
 	description?: string;
 	transport?: string;
@@ -145,4 +147,35 @@ export function getMarketplaceConfig(): MarketplaceConfig {
 export function getCategories(skills: Skill[]): string[] {
 	const cats = new Set(skills.map((s) => s.category));
 	return Array.from(cats).sort();
+}
+
+export interface SkillFile {
+	content: string;
+	path: string;
+}
+
+export function getSkillFiles(slug: string): SkillFile[] {
+	const skillDir = join(process.cwd(), "skills", slug);
+	if (!existsSync(skillDir)) {
+		return [];
+	}
+
+	const files: SkillFile[] = [];
+
+	function walk(dir: string, prefix: string) {
+		for (const entry of readdirSync(dir, { withFileTypes: true })) {
+			const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+			if (entry.isDirectory()) {
+				walk(join(dir, entry.name), rel);
+			} else {
+				files.push({
+					path: rel,
+					content: readFileSync(join(dir, entry.name), "utf-8"),
+				});
+			}
+		}
+	}
+
+	walk(skillDir, "");
+	return files.sort((a, b) => a.path.localeCompare(b.path));
 }
