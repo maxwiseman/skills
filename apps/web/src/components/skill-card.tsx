@@ -29,6 +29,7 @@ export function SkillCard({ skill, marketplaceName }: Props) {
 			<Link
 				className="absolute inset-0 rounded-lg"
 				href={`/skills/${skill.slug}`}
+				prefetch
 			/>
 
 			<div className="flex items-start justify-between gap-2">
