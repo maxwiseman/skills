@@ -20,8 +20,6 @@ export function GET(request: Request) {
 		tags: skill.tags,
 		license: skill.license,
 		homepage: skill.homepage,
-		strict: false,
-		commands: ["./SKILL.md"],
 	}));
 
 	const marketplace = {

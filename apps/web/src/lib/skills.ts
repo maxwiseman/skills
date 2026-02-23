@@ -181,16 +181,36 @@ export function getSkillFiles(slug: string): SkillFile[] {
 }
 
 export function getSkillGitFiles(slug: string, skill: Skill): SkillFile[] {
-	const files = getSkillFiles(slug);
+	const rawFiles = getSkillFiles(slug);
 
+	// Move SKILL.md to skills/{slug}/SKILL.md so Claude Code auto-discovers it
+	// as a /{slug} slash command (the documented plugin structure).
+	const files: SkillFile[] = rawFiles.map((f) =>
+		f.path === "SKILL.md" ? { ...f, path: `skills/${slug}/SKILL.md` } : f
+	);
+
+	// Inject agents/openai.yaml if not present on disk
 	const hasOpenAIYaml = files.some((f) => f.path === "agents/openai.yaml");
 	if (!hasOpenAIYaml) {
 		const name = skill.name.replace(/"/g, '\\"');
 		const description = skill.description.replace(/"/g, '\\"');
 		const yaml = `interface:\n  display_name: "${name}"\n  short_description: "${description}"\n`;
 		files.push({ path: "agents/openai.yaml", content: yaml });
-		files.sort((a, b) => a.path.localeCompare(b.path));
 	}
 
-	return files;
+	// Inject .claude-plugin/plugin.json — required for Claude Code to recognise
+	// the repo as a plugin. No commands field needed; auto-discovery handles it.
+	const hasPluginJson = files.some(
+		(f) => f.path === ".claude-plugin/plugin.json"
+	);
+	if (!hasPluginJson) {
+		const pluginJson = JSON.stringify(
+			{ name: slug, description: skill.description, version: skill.version },
+			null,
+			2
+		);
+		files.push({ path: ".claude-plugin/plugin.json", content: pluginJson });
+	}
+
+	return files.sort((a, b) => a.path.localeCompare(b.path));
 }
