@@ -179,3 +179,18 @@ export function getSkillFiles(slug: string): SkillFile[] {
 	walk(skillDir, "");
 	return files.sort((a, b) => a.path.localeCompare(b.path));
 }
+
+export function getSkillGitFiles(slug: string, skill: Skill): SkillFile[] {
+	const files = getSkillFiles(slug);
+
+	const hasOpenAIYaml = files.some((f) => f.path === "agents/openai.yaml");
+	if (!hasOpenAIYaml) {
+		const name = skill.name.replace(/"/g, '\\"');
+		const description = skill.description.replace(/"/g, '\\"');
+		const yaml = `interface:\n  display_name: "${name}"\n  short_description: "${description}"\n`;
+		files.push({ path: "agents/openai.yaml", content: yaml });
+		files.sort((a, b) => a.path.localeCompare(b.path));
+	}
+
+	return files;
+}
