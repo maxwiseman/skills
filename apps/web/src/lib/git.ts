@@ -161,9 +161,36 @@ export function pktLine(data: Buffer | string): Buffer {
 
 export const PKT_FLUSH = Buffer.from("0000", "utf-8");
 
-export function buildUploadPackResponse(objects: GitObject[]): Buffer {
+/**
+ * Build the shallow-acknowledgement response for the first POST in a
+ * two-round-trip shallow clone.  git sends `want + deepen` without `done`
+ * first; the server must reply with only `shallow <sha> + flush` and nothing
+ * else.  git then sends a second POST that includes `done`, at which point the
+ * full NAK + packfile response is sent via buildUploadPackResponse.
+ */
+export function buildShallowResponse(commitSha: string): Buffer {
+	return Buffer.concat([pktLine(`shallow ${commitSha}\n`), PKT_FLUSH]);
+}
+
+/**
+ * Build the upload-pack response body (NAK + side-band-64k packfile).
+ * When the client sent `deepen`, pass shallowCommitSha so we emit
+ * `shallow <sha> + flush` before the NAK — required on every POST that
+ * includes `deepen`, including the final one with `done`.
+ */
+export function buildUploadPackResponse(
+	objects: GitObject[],
+	shallowCommitSha?: string
+): Buffer {
 	const packfile = buildPackfile(objects);
-	const chunks: Buffer[] = [pktLine("NAK\n")];
+	const chunks: Buffer[] = [];
+
+	if (shallowCommitSha) {
+		chunks.push(pktLine(`shallow ${shallowCommitSha}\n`));
+		chunks.push(PKT_FLUSH);
+	}
+
+	chunks.push(pktLine("NAK\n"));
 
 	// side-band-64k: max 65524 bytes per pkt-line, minus 4 length bytes and 1 band byte
 	const MAX_CHUNK = 65_519;

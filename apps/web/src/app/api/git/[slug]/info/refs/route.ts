@@ -1,5 +1,10 @@
 import { buildRepo, PKT_FLUSH, pktLine } from "@/lib/git";
-import { getSkillGitFiles, getSkills } from "@/lib/skills";
+import {
+	getMarketplaceConfig,
+	getMarketplaceGitFiles,
+	getSkillGitFiles,
+	getSkills,
+} from "@/lib/skills";
 
 export const dynamic = "force-dynamic";
 
@@ -15,16 +20,23 @@ export async function GET(
 	}
 
 	const slug = rawSlug.replace(/\.git$/, "");
-	const skill = getSkills().find((s) => s.slug === slug);
-	if (!skill) {
-		return new Response("Not Found", { status: 404 });
+	const skills = getSkills();
+
+	let files: ReturnType<typeof getSkillGitFiles>;
+	if (slug === "marketplace") {
+		files = getMarketplaceGitFiles(skills, getMarketplaceConfig());
+	} else {
+		const skill = skills.find((s) => s.slug === slug);
+		if (!skill) {
+			return new Response("Not Found", { status: 404 });
+		}
+		files = getSkillGitFiles(slug, skill);
 	}
 
-	const files = getSkillGitFiles(slug, skill);
 	const { commitSha } = buildRepo(files);
 
 	const caps =
-		"side-band-64k ofs-delta symref=HEAD:refs/heads/main agent=git/2.0";
+		"shallow side-band-64k ofs-delta symref=HEAD:refs/heads/main agent=git/2.0";
 
 	const body = Buffer.concat([
 		pktLine("# service=git-upload-pack\n"),

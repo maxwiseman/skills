@@ -180,6 +180,93 @@ export function getSkillFiles(slug: string): SkillFile[] {
 	return files.sort((a, b) => a.path.localeCompare(b.path));
 }
 
+export function getMarketplaceGitFiles(
+	skills: Skill[],
+	config: MarketplaceConfig
+): SkillFile[] {
+	const files: SkillFile[] = [];
+
+	// plugin.json at repo root (required alongside marketplace.json)
+	files.push({
+		path: ".claude-plugin/plugin.json",
+		content: JSON.stringify(
+			{ name: config.name, version: config.metadata.version },
+			null,
+			2
+		),
+	});
+
+	// Root marketplace catalog with relative-path sources (git-based marketplace)
+	const catalog = JSON.stringify(
+		{
+			name: config.name,
+			owner: config.owner,
+			metadata: config.metadata,
+			plugins: skills.map((skill) => ({
+				name: skill.slug,
+				source: `./plugins/${skill.slug}`,
+				description: skill.description,
+				version: skill.version,
+				category: skill.category,
+				tags: skill.tags.length > 0 ? skill.tags : undefined,
+				author: skill.author ? { name: skill.author } : undefined,
+				license: skill.license ?? undefined,
+				homepage: skill.homepage ?? undefined,
+			})),
+		},
+		null,
+		2
+	);
+	files.push({ path: ".claude-plugin/marketplace.json", content: catalog });
+
+	for (const skill of skills) {
+		const skillFiles = getSkillFiles(skill.slug);
+		const prefix = `plugins/${skill.slug}`;
+
+		for (const f of skillFiles) {
+			if (f.path === "SKILL.md") {
+				// Convert SKILL.md to a Claude Code command file — strip marketplace
+				// frontmatter fields, keep only description + body content.
+				const commandMd = `---\ndescription: ${skill.description}\n---\n\n${skill.content}`;
+				files.push({
+					path: `${prefix}/commands/${skill.slug}.md`,
+					content: commandMd,
+				});
+			} else {
+				files.push({ path: `${prefix}/${f.path}`, content: f.content });
+			}
+		}
+
+		// Inject plugin.json if not on disk
+		if (!skillFiles.some((f) => f.path === ".claude-plugin/plugin.json")) {
+			files.push({
+				path: `${prefix}/.claude-plugin/plugin.json`,
+				content: JSON.stringify(
+					{
+						name: skill.slug,
+						description: skill.description,
+						version: skill.version,
+					},
+					null,
+					2
+				),
+			});
+		}
+
+		// Inject agents/openai.yaml if not on disk
+		if (!skillFiles.some((f) => f.path === "agents/openai.yaml")) {
+			const name = skill.name.replace(/"/g, '\\"');
+			const description = skill.description.replace(/"/g, '\\"');
+			files.push({
+				path: `${prefix}/agents/openai.yaml`,
+				content: `interface:\n  display_name: "${name}"\n  short_description: "${description}"\n`,
+			});
+		}
+	}
+
+	return files.sort((a, b) => a.path.localeCompare(b.path));
+}
+
 export function getSkillGitFiles(slug: string, skill: Skill): SkillFile[] {
 	const rawFiles = getSkillFiles(slug);
 
