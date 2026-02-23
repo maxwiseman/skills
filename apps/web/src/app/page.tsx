@@ -1,30 +1,40 @@
-"use client";
+import MarketplaceBrowser from "@/components/marketplace-browser";
+import { getCategories, getMarketplaceConfig, getSkills } from "@/lib/skills";
 
-const TITLE_TEXT = `
- ██████╗ ███████╗████████╗████████╗███████╗██████╗
- ██╔══██╗██╔════╝╚══██╔══╝╚══██╔══╝██╔════╝██╔══██╗
- ██████╔╝█████╗     ██║      ██║   █████╗  ██████╔╝
- ██╔══██╗██╔══╝     ██║      ██║   ██╔══╝  ██╔══██╗
- ██████╔╝███████╗   ██║      ██║   ███████╗██║  ██║
- ╚═════╝ ╚══════╝   ╚═╝      ╚═╝   ╚══════╝╚═╝  ╚═╝
-
- ████████╗    ███████╗████████╗ █████╗  ██████╗██╗  ██╗
- ╚══██╔══╝    ██╔════╝╚══██╔══╝██╔══██╗██╔════╝██║ ██╔╝
-    ██║       ███████╗   ██║   ███████║██║     █████╔╝
-    ██║       ╚════██║   ██║   ██╔══██║██║     ██╔═██╗
-    ██║       ███████║   ██║   ██║  ██║╚██████╗██║  ██╗
-    ╚═╝       ╚══════╝   ╚═╝   ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
- `;
+export const dynamic = "force-dynamic";
 
 export default function Home() {
-  return (
-    <div className="container mx-auto max-w-3xl px-4 py-2">
-      <pre className="overflow-x-auto font-mono text-sm">{TITLE_TEXT}</pre>
-      <div className="grid gap-6">
-        <section className="rounded-lg border p-4">
-          <h2 className="mb-2 font-medium">API Status</h2>
-        </section>
-      </div>
-    </div>
-  );
+	const skills = getSkills();
+	const config = getMarketplaceConfig();
+	const categories = getCategories(skills);
+
+	return (
+		<div className="flex min-h-0 flex-col overflow-hidden">
+			<div className="border-b px-6 py-8">
+				<div className="mx-auto max-w-4xl">
+					<div className="mb-1 flex items-center gap-2">
+						<span className="font-mono text-muted-foreground text-xs">
+							/plugin marketplace add {config.name}
+						</span>
+					</div>
+					<h1 className="mb-2 font-semibold text-2xl tracking-tight">
+						{config.name}
+					</h1>
+					<p className="text-muted-foreground">{config.metadata.description}</p>
+					<div className="mt-3 flex items-center gap-4 text-muted-foreground text-sm">
+						<span>{skills.length} skills</span>
+						<span>·</span>
+						<span>{categories.length} categories</span>
+						<span>·</span>
+						<span>by {config.owner.name}</span>
+					</div>
+				</div>
+			</div>
+			<MarketplaceBrowser
+				categories={categories}
+				marketplaceName={config.name}
+				skills={skills}
+			/>
+		</div>
+	);
 }
