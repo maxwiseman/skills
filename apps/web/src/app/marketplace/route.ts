@@ -1,6 +1,6 @@
 import { getMarketplaceConfig, getSkills } from "@/lib/skills";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-static";
 
 export function GET() {
 	const config = getMarketplaceConfig();
