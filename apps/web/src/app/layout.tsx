@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import "../index.css";
+import { Analytics } from "@vercel/analytics/react";
 import Providers from "@/components/providers";
 
 const geistSans = Geist({
@@ -34,6 +35,7 @@ export default function RootLayout({
 					<div className="grid h-svh grid-rows-[auto_1fr]">
 						{/*<Header />*/}
 						{children}
+						<Analytics />
 					</div>
 				</Providers>
 			</body>
