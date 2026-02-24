@@ -8,8 +8,6 @@ author: Max's Skills
 license: MIT
 ---
 
-# typst-author skill
-
 ## Overview
 
 This skill helps agents generate, edit, and reason about Typst documents. It provides quick‑start examples, detailed workflows, and links to the full Typst documentation (guides, tutorials, reference).
