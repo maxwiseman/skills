@@ -61,7 +61,7 @@ interface FileTreeNodeProps {
 }
 
 function FileTreeNode({ node, depth, onFileClick }: FileTreeNodeProps) {
-	const [expanded, setExpanded] = useState(true);
+	const [expanded, setExpanded] = useState(depth === 0);
 	const paddingLeft = 12 + depth * 14;
 
 	if (node.type === "dir") {

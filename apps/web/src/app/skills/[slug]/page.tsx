@@ -2,7 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import CopyButton from "@/components/copy-button";
+import InstallCommandBox from "@/components/install-command-box";
 import SkillContent from "@/components/skill-content";
 import { SkillFileTree } from "@/components/skill-file-tree";
 import { getMarketplaceConfig, getSkillFiles, getSkills } from "@/lib/skills";
@@ -36,8 +36,12 @@ export default async function SkillPage({ params }: Props) {
 	}
 
 	const config = getMarketplaceConfig();
-	const installCmd = `/plugin install ${skill.slug}@${config.name}`;
-	const files = getSkillFiles(skill.slug).filter((f) => f.path !== "SKILL.md");
+	const files = getSkillFiles(skill.slug).filter((file) => {
+		if (file.path === "SKILL.md") {
+			return false;
+		}
+		return !file.path.startsWith("agents/") && !file.path.startsWith("assets/");
+	});
 
 	return (
 		<div className="px-6 py-6">
@@ -73,11 +77,11 @@ export default async function SkillPage({ params }: Props) {
 						</div>
 					)}
 
-					<div className="mt-4 flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
-						<code className="flex-1 truncate font-mono text-sm">
-							{installCmd}
-						</code>
-						<CopyButton text={installCmd} />
+					<div className="mt-4">
+						<InstallCommandBox
+							marketplaceName={config.name}
+							skillSlug={skill.slug}
+						/>
 					</div>
 				</div>
 

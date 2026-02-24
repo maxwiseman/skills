@@ -6,6 +6,7 @@ category: documentation
 tags: [explain, documentation, learning, onboarding]
 author: Skills Marketplace
 license: MIT
+icon: text-plus
 ---
 
 Explain the selected code clearly.

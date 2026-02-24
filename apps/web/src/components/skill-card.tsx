@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Skill } from "@/lib/skills";
 import { CategoryPill } from "./category-pill";
-import CopyButton from "./copy-button";
+import InstallCommandBox from "./install-command-box";
 
 interface Props {
 	marketplaceName: string;
@@ -9,8 +9,6 @@ interface Props {
 }
 
 export function SkillCard({ skill, marketplaceName }: Props) {
-	const installCmd = `/plugin install ${skill.slug}@${marketplaceName}`;
-
 	return (
 		<div className="relative flex flex-col gap-3 rounded-lg border bg-card p-4 transition-colors hover:border-foreground/20">
 			<Link
@@ -47,12 +45,11 @@ export function SkillCard({ skill, marketplaceName }: Props) {
 				</div>
 			)}
 
-			<div className="relative flex items-center justify-between gap-2 rounded border bg-muted/50 px-2.5 py-1.5">
-				<span className="truncate font-mono text-muted-foreground text-xs">
-					{installCmd}
-				</span>
-				<CopyButton text={installCmd} />
-			</div>
+			<InstallCommandBox
+				marketplaceName={marketplaceName}
+				showSelector={false}
+				skillSlug={skill.slug}
+			/>
 		</div>
 	);
 }

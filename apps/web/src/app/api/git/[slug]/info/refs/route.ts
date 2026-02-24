@@ -7,6 +7,7 @@ import {
 } from "@/lib/skills";
 
 export const dynamic = "force-dynamic";
+const GIT_SUFFIX_RE = /\.git$/;
 
 export async function GET(
 	request: Request,
@@ -19,18 +20,18 @@ export async function GET(
 		return new Response("Not Found", { status: 404 });
 	}
 
-	const slug = rawSlug.replace(/\.git$/, "");
+	const slug = rawSlug.replace(GIT_SUFFIX_RE, "");
 	const skills = getSkills();
 
-	let files: ReturnType<typeof getSkillGitFiles>;
+	let files: Awaited<ReturnType<typeof getSkillGitFiles>>;
 	if (slug === "marketplace") {
-		files = getMarketplaceGitFiles(skills, getMarketplaceConfig());
+		files = await getMarketplaceGitFiles(skills, getMarketplaceConfig());
 	} else {
 		const skill = skills.find((s) => s.slug === slug);
 		if (!skill) {
 			return new Response("Not Found", { status: 404 });
 		}
-		files = getSkillGitFiles(slug, skill);
+		files = await getSkillGitFiles(slug, skill);
 	}
 
 	const { commitSha } = buildRepo(files);
