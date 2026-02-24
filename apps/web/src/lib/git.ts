@@ -192,8 +192,11 @@ export function buildUploadPackResponse(
 
 	chunks.push(pktLine("NAK\n"));
 
-	// side-band-64k: max 65524 bytes per pkt-line, minus 4 length bytes and 1 band byte
-	const MAX_CHUNK = 65_519;
+	// side-band-64k:
+	// pkt-line max is 65520 bytes total (4-byte hex length + payload),
+	// and side-band uses 1 payload byte for the band designator.
+	// So max pack data per packet is 65520 - 4 - 1 = 65515.
+	const MAX_CHUNK = 65_515;
 	let offset = 0;
 
 	while (offset < packfile.length) {
