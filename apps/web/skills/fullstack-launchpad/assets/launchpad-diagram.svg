@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 220" role="img" aria-label="Launchpad workflow">
+  <rect width="480" height="220" fill="#f8fafc"/>
+  <rect x="20" y="80" width="130" height="60" rx="8" fill="#e2e8f0"/>
+  <rect x="175" y="80" width="130" height="60" rx="8" fill="#dbeafe"/>
+  <rect x="330" y="80" width="130" height="60" rx="8" fill="#dcfce7"/>
+  <text x="85" y="115" font-family="monospace" font-size="14" text-anchor="middle">Scope</text>
+  <text x="240" y="115" font-family="monospace" font-size="14" text-anchor="middle">Scaffold</text>
+  <text x="395" y="115" font-family="monospace" font-size="14" text-anchor="middle">Ship</text>
+  <path d="M150 110 L175 110" stroke="#334155" stroke-width="2"/>
+  <path d="M305 110 L330 110" stroke="#334155" stroke-width="2"/>
+</svg>

@@ -2,7 +2,7 @@ import type { PluginMetadata } from "@/lib/plugin-metadata";
 
 const metadata: PluginMetadata = {
 	slug: "typst-author",
-	name: "typst-author",
+	name: "Typst Author",
 	description:
 		"Generate idiomatic Typst (.typ) code, edit existing Typst files, and answer Typst syntax questions. Use when working with Typst files (*.typ) or when the user mentions Typst markup, document creation, or formatting.",
 	version: "1.0.0",
@@ -12,6 +12,7 @@ const metadata: PluginMetadata = {
 	license: "MIT",
 	codex: {
 		interface: {
+			brand_color: "#239DAD",
 			display_name: "Typst Author",
 			short_description: "Work with Typst files",
 			icon_small: "./assets/typst-small.svg",

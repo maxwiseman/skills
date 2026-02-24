@@ -1,0 +1,13 @@
+{
+  "endpoint": "",
+  "method": "GET",
+  "request": {
+    "pathParams": {},
+    "query": {},
+    "body": null
+  },
+  "response": {
+    "status": 200,
+    "schema": {}
+  }
+}

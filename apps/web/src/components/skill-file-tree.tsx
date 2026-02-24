@@ -51,7 +51,24 @@ function buildTree(files: PluginFile[]): TreeNode[] {
 		}
 	}
 
-	return root;
+	const sortNodes = (nodes: TreeNode[]): TreeNode[] => {
+		nodes.sort((a, b) => {
+			if (a.type !== b.type) {
+				return a.type === "dir" ? -1 : 1;
+			}
+			return a.name.localeCompare(b.name);
+		});
+
+		for (const node of nodes) {
+			if (node.type === "dir") {
+				sortNodes(node.children);
+			}
+		}
+
+		return nodes;
+	};
+
+	return sortNodes(root);
 }
 
 interface FileTreeNodeProps {
@@ -69,7 +86,7 @@ function FileTreeNode({ node, depth, onFileClick }: FileTreeNodeProps) {
 		return (
 			<div>
 				<button
-					className="flex w-full items-center gap-1.5 py-0.5 text-left text-muted-foreground text-sm hover:bg-muted/50"
+					className="flex w-full items-center gap-1.5 py-1 text-left text-muted-foreground text-sm hover:bg-muted/50"
 					onClick={() => setExpanded((e) => !e)}
 					style={{ paddingLeft }}
 					type="button"
@@ -94,7 +111,7 @@ function FileTreeNode({ node, depth, onFileClick }: FileTreeNodeProps) {
 
 	return (
 		<button
-			className="flex w-full items-center gap-1.5 py-0.5 text-left text-sm hover:bg-muted/50"
+			className="flex w-full items-center gap-1.5 py-1 text-left text-sm hover:bg-muted/50"
 			onClick={() => onFileClick(node)}
 			style={{ paddingLeft }}
 			type="button"
@@ -107,21 +124,25 @@ function FileTreeNode({ node, depth, onFileClick }: FileTreeNodeProps) {
 
 interface Props {
 	files: PluginFile[];
+	header?: string | boolean;
 }
 
-export function SkillFileTree({ files }: Props) {
+export function SkillFileTree({ files, header }: Props) {
 	const [selected, setSelected] = useState<TreeNode | null>(null);
 	const tree = buildTree(files);
+	const isSingleItem = tree.length === 1 && tree[0].type === "file";
 
 	return (
 		<>
 			<div className="overflow-hidden rounded-lg border bg-card">
-				<div className="border-b px-3 py-2">
-					<span className="font-medium text-muted-foreground text-xs">
-						Files
-					</span>
-				</div>
-				<div className="py-1">
+				{!isSingleItem && header !== false && (
+					<div className="border-b px-3 py-2">
+						<span className="font-medium text-muted-foreground text-sm">
+							{header ?? "File tree"}
+						</span>
+					</div>
+				)}
+				<div className={isSingleItem ? undefined : "py-2"}>
 					{tree.map((node) => (
 						<FileTreeNode
 							depth={0}

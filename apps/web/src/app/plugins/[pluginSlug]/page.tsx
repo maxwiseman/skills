@@ -41,6 +41,37 @@ export default async function PluginPage({ params }: Props) {
 
 	const config = getMarketplaceConfig();
 	const files = getPluginFiles(plugin.slug);
+	const visibleFiles = files.filter(
+		(file) => file.path !== "metadata.ts" && !file.path.startsWith("assets/")
+	);
+	const pluginLevelFiles = visibleFiles.filter(
+		(file) => !file.path.startsWith("skills/")
+	);
+	const isSingleSkillPlugin =
+		plugin.skills.length === 1 &&
+		(plugin.skills[0]?.name === plugin.slug ||
+			plugin.skills[0]?.name === plugin.name);
+	const singleSkill = plugin.skills[0];
+	const singleSkillFiles =
+		isSingleSkillPlugin && singleSkill
+			? visibleFiles
+					.filter((file) => file.path.startsWith(`skills/${singleSkill.slug}/`))
+					.filter((file) => file.path !== `skills/${singleSkill.slug}/SKILL.md`)
+					.map((file) => ({
+						...file,
+						path: file.path.replace(`skills/${singleSkill.slug}/`, ""),
+					}))
+			: [];
+	const singleSkillCombinedFiles =
+		isSingleSkillPlugin && singleSkill
+			? [
+					...pluginLevelFiles,
+					...singleSkillFiles.map((file) => ({
+						...file,
+						path: `skills/${singleSkill.slug}/${file.path}`,
+					})),
+				]
+			: [];
 
 	return (
 		<div className="px-6 py-6">
@@ -88,14 +119,33 @@ export default async function PluginPage({ params }: Props) {
 				</div>
 
 				<div className="space-y-4">
+					{isSingleSkillPlugin
+						? singleSkillCombinedFiles.length > 0 && (
+								<SkillFileTree files={singleSkillCombinedFiles} />
+							)
+						: pluginLevelFiles.length > 0 && (
+								<SkillFileTree files={pluginLevelFiles} />
+							)}
+
 					{plugin.skills.map((skill) => {
-						const skillFiles = files
+						const skillFiles = visibleFiles
 							.filter((file) => file.path.startsWith(`skills/${skill.slug}/`))
 							.filter((file) => file.path !== `skills/${skill.slug}/SKILL.md`)
 							.map((file) => ({
 								...file,
 								path: file.path.replace(`skills/${skill.slug}/`, ""),
 							}));
+
+						if (
+							(skill.name === plugin.slug || skill.name === plugin.name) &&
+							plugin.skills.length === 1
+						) {
+							return (
+								<div className="space-y-4 border-t py-8">
+									<SkillContent content={skill.content} />
+								</div>
+							);
+						}
 
 						return (
 							<details
@@ -105,9 +155,11 @@ export default async function PluginPage({ params }: Props) {
 								<summary className="flex cursor-pointer list-none items-center justify-between gap-2 bg-muted/30 px-4 py-3">
 									<div>
 										<div className="font-mono text-sm">/{skill.slug}</div>
-										<p className="text-muted-foreground text-sm">
-											{skill.description}
-										</p>
+										{skill.description !== plugin.description && (
+											<p className="text-muted-foreground text-sm">
+												{skill.description}
+											</p>
+										)}
 									</div>
 									<span className="text-muted-foreground text-xs group-open:hidden">
 										Expand

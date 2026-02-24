@@ -2,6 +2,7 @@ import type { PluginMetadata } from "@/lib/plugin-metadata";
 import commit from "../../skills/commit/metadata";
 import debug from "../../skills/debug/metadata";
 import explain from "../../skills/explain/metadata";
+import fullstackLaunchpad from "../../skills/fullstack-launchpad/metadata";
 import optimize from "../../skills/optimize/metadata";
 import prDescription from "../../skills/pr-description/metadata";
 import refactor from "../../skills/refactor/metadata";
@@ -14,6 +15,7 @@ export const PLUGIN_REGISTRY: PluginMetadata[] = [
 	commit,
 	debug,
 	explain,
+	fullstackLaunchpad,
 	optimize,
 	prDescription,
 	refactor,
