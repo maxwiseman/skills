@@ -86,7 +86,7 @@ function escapeYamlString(value: string): string {
 
 function fetchTablerIconSvg(iconName: string): Promise<string | undefined> {
 	if (!TABLER_ICON_NAME_RE.test(iconName)) {
-		return undefined;
+		return Promise.resolve(undefined);
 	}
 
 	const cached = tablerIconCache.get(iconName);
@@ -282,9 +282,7 @@ export async function getMarketplaceGitFiles(
 		const skillHasIconFile = skillFiles.some(
 			(f) => f.path === "assets/icon.svg"
 		);
-		const hasTablerIcon = iconName && TABLER_ICON_NAME_RE.test(iconName);
-		const shouldGenerateIcon = !skillHasIconFile && Boolean(hasTablerIcon);
-		if (shouldGenerateIcon) {
+		if (!skillHasIconFile && iconName && TABLER_ICON_NAME_RE.test(iconName)) {
 			const svg = await fetchTablerIconSvg(iconName);
 			if (svg) {
 				files.push({
@@ -340,9 +338,7 @@ export async function getSkillGitFiles(
 		f.path === "SKILL.md" ? { ...f, path: `skills/${slug}/SKILL.md` } : f
 	);
 	const hasIconFile = files.some((f) => f.path === "assets/icon.svg");
-	const hasTablerIcon = iconName && TABLER_ICON_NAME_RE.test(iconName);
-	const shouldGenerateIcon = !hasIconFile && Boolean(hasTablerIcon);
-	if (shouldGenerateIcon) {
+	if (!hasIconFile && iconName && TABLER_ICON_NAME_RE.test(iconName)) {
 		const svg = await fetchTablerIconSvg(iconName);
 		if (svg) {
 			files.push({ path: "assets/icon.svg", content: svg });

@@ -40,7 +40,9 @@ export default async function SkillPage({ params }: Props) {
 		if (file.path === "SKILL.md") {
 			return false;
 		}
-		return !file.path.startsWith("agents/") && !file.path.startsWith("assets/");
+		return !(
+			file.path.startsWith("agents/") || file.path.startsWith("assets/")
+		);
 	});
 
 	return (
