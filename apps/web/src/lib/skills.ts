@@ -60,10 +60,6 @@ function parseFrontmatter(raw: string): {
 	}
 }
 
-function escapeYamlString(value: string): string {
-	return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-}
-
 function fetchTablerIconSvg(iconName: string): Promise<string | undefined> {
 	if (!TABLER_ICON_NAME_RE.test(iconName)) {
 		return Promise.resolve(undefined);
@@ -324,18 +320,6 @@ function isGeneratedSkillMarkdown(path: string): boolean {
 	return SKILL_MARKDOWN_PATH_RE.test(path);
 }
 
-function buildGeneratedCommandFile(
-	skill: PluginSkill,
-	prefix: string
-): PluginFile {
-	return {
-		path: withPrefix(`commands/${skill.slug}.md`, prefix),
-		content:
-			`---\ndescription: ${escapeYamlString(skill.description)}\n---\n\n` +
-			skill.content,
-	};
-}
-
 function buildGeneratedSkillFile(
 	plugin: Plugin,
 	skill: PluginSkill,
@@ -416,7 +400,6 @@ async function buildPluginExportFiles(
 	const files = collectPluginSourceFiles(plugin, prefix);
 
 	for (const skill of plugin.skills) {
-		files.push(buildGeneratedCommandFile(skill, prefix));
 		files.push(buildGeneratedSkillFile(plugin, skill, prefix));
 	}
 
