@@ -1,0 +1,5 @@
+interface:
+  display_name: "Typst Author"
+  short_description: "Work with Typst files"
+  icon_small: "./assets/typst-small.svg"
+  icon_large: "./assets/typst-large.png"
