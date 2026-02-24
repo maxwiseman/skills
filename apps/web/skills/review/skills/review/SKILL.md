@@ -1,12 +1,8 @@
 ---
 name: review
 description: Review code for bugs, security vulnerabilities, and performance issues
-version: 1.0.0
-category: quality
-tags: [code-review, security, performance, bugs]
-author: Skills Marketplace
-license: MIT
 ---
+
 
 Review the code I've selected or the recent changes for:
 

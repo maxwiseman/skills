@@ -1,12 +1,8 @@
 ---
 name: typst-author
 description: Generate idiomatic Typst (.typ) code, edit existing Typst files, and answer Typst syntax questions. Use when working with Typst files (*.typ) or when the user mentions Typst markup, document creation, or formatting.
-version: 1.0.0
-category: documentation
-tags: [typst, typesetting, docs, pdf]
-author: Max's Skills
-license: MIT
 ---
+
 
 ## Overview
 

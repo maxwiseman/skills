@@ -1,12 +1,8 @@
 ---
 name: pr-description
 description: Write a clear pull request title and description from git diff and commits
-version: 1.0.0
-category: git
-tags: [git, pull-request, documentation, collaboration]
-author: Skills Marketplace
-license: MIT
 ---
+
 
 Write a pull request description for the current branch's changes.
 

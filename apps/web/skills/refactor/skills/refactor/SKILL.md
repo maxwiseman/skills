@@ -1,12 +1,8 @@
 ---
 name: refactor
 description: Refactor selected code for clarity, maintainability, and idiomatic style
-version: 1.0.0
-category: quality
-tags: [refactor, clean-code, maintainability, patterns]
-author: Skills Marketplace
-license: MIT
 ---
+
 
 Refactor the selected code. Goals in priority order:
 

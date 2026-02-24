@@ -2,8 +2,8 @@ import { buildRepo, PKT_FLUSH, pktLine } from "@/lib/git";
 import {
 	getMarketplaceConfig,
 	getMarketplaceGitFiles,
-	getSkillGitFiles,
-	getSkills,
+	getPluginGitFiles,
+	getPlugins,
 } from "@/lib/skills";
 
 export const dynamic = "force-dynamic";
@@ -21,17 +21,17 @@ export async function GET(
 	}
 
 	const slug = rawSlug.replace(GIT_SUFFIX_RE, "");
-	const skills = getSkills();
+	const plugins = getPlugins();
 
-	let files: Awaited<ReturnType<typeof getSkillGitFiles>>;
+	let files: Awaited<ReturnType<typeof getPluginGitFiles>>;
 	if (slug === "marketplace") {
-		files = await getMarketplaceGitFiles(skills, getMarketplaceConfig());
+		files = await getMarketplaceGitFiles(plugins, getMarketplaceConfig());
 	} else {
-		const skill = skills.find((s) => s.slug === slug);
-		if (!skill) {
+		const plugin = plugins.find((plugin) => plugin.slug === slug);
+		if (!plugin) {
 			return new Response("Not Found", { status: 404 });
 		}
-		files = await getSkillGitFiles(slug, skill);
+		files = await getPluginGitFiles(slug, plugin);
 	}
 
 	const { commitSha } = buildRepo(files);

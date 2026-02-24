@@ -1,33 +1,33 @@
 "use client";
 
 import { useState } from "react";
-import type { Skill } from "@/lib/skills";
+import type { Plugin } from "@/lib/skills";
 import { SkillCard } from "./skill-card";
 import { Input } from "./ui/input";
 
 interface Props {
 	categories: string[];
 	marketplaceName: string;
-	skills: Skill[];
+	plugins: Plugin[];
 }
 
 export default function MarketplaceBrowser({
-	skills,
+	plugins,
 	categories,
 	marketplaceName,
 }: Props) {
 	const [query, setQuery] = useState("");
 	const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-	const filtered = skills.filter((skill) => {
+	const filtered = plugins.filter((plugin) => {
 		const matchesCategory =
-			activeCategory === null || skill.category === activeCategory;
+			activeCategory === null || plugin.category === activeCategory;
 		const q = query.toLowerCase();
 		const matchesQuery =
 			q === "" ||
-			skill.name.toLowerCase().includes(q) ||
-			skill.description.toLowerCase().includes(q) ||
-			skill.tags.some((t) => t.toLowerCase().includes(q));
+			plugin.name.toLowerCase().includes(q) ||
+			plugin.description.toLowerCase().includes(q) ||
+			plugin.tags.some((t) => t.toLowerCase().includes(q));
 		return matchesCategory && matchesQuery;
 	});
 
@@ -78,15 +78,15 @@ export default function MarketplaceBrowser({
 				<div className="mx-auto max-w-4xl">
 					{filtered.length === 0 ? (
 						<div className="py-16 text-center text-muted-foreground text-sm">
-							No skills match your search.
+							No plugins match your search.
 						</div>
 					) : (
 						<div className="grid gap-3 sm:grid-cols-2">
-							{filtered.map((skill) => (
+							{filtered.map((plugin) => (
 								<SkillCard
-									key={skill.slug}
+									key={plugin.slug}
 									marketplaceName={marketplaceName}
-									skill={skill}
+									plugin={plugin}
 								/>
 							))}
 						</div>

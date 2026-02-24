@@ -3,7 +3,7 @@
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { File, FileText, Folder, FolderOpen, X } from "lucide-react";
 import { useState } from "react";
-import type { SkillFile } from "@/lib/skills";
+import type { PluginFile } from "@/lib/skills";
 import CopyButton from "./copy-button";
 import SkillContent from "./skill-content";
 
@@ -15,7 +15,7 @@ interface TreeNode {
 	type: "file" | "dir";
 }
 
-function buildTree(files: SkillFile[]): TreeNode[] {
+function buildTree(files: PluginFile[]): TreeNode[] {
 	const root: TreeNode[] = [];
 
 	for (const file of files) {
@@ -106,7 +106,7 @@ function FileTreeNode({ node, depth, onFileClick }: FileTreeNodeProps) {
 }
 
 interface Props {
-	files: SkillFile[];
+	files: PluginFile[];
 }
 
 export function SkillFileTree({ files }: Props) {

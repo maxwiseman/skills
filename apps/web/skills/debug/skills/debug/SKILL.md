@@ -1,12 +1,8 @@
 ---
 name: debug
 description: Systematically diagnose and fix errors, exceptions, and unexpected behavior
-version: 1.0.0
-category: debugging
-tags: [debug, errors, troubleshooting, stack-traces]
-author: Skills Marketplace
-license: MIT
 ---
+
 
 Help me debug this issue.
 

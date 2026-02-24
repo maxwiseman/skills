@@ -1,12 +1,8 @@
 ---
 name: release
 description: Prepare and publish a new version release with changelog and git tags
-version: 1.0.0
-category: git
-tags: [git, release, semver, changelog, versioning]
-author: Skills Marketplace
-license: MIT
 ---
+
 
 Prepare and publish a versioned release for this project.
 

@@ -14,16 +14,16 @@ import { useInstallPreferenceStore } from "@/stores/install-preference-store";
 
 interface Props {
 	marketplaceName: string;
+	pluginSlug: string;
 	showSelector?: boolean;
-	skillSlug: string;
 }
 
 const UNKNOWN_ORIGIN = "<marketplace-url>";
 
 export default function InstallCommandBox({
 	marketplaceName,
+	pluginSlug,
 	showSelector = true,
-	skillSlug,
 }: Props) {
 	const installer = useInstallPreferenceStore((state) => state.installer);
 	const setInstaller = useInstallPreferenceStore((state) => state.setInstaller);
@@ -35,12 +35,12 @@ export default function InstallCommandBox({
 
 	const installCmd = useMemo(() => {
 		if (installer === "claude") {
-			return `/plugin install ${skillSlug}@${marketplaceName}`;
+			return `/plugin install ${pluginSlug}@${marketplaceName}`;
 		}
 
-		const repoUrl = `${origin}/api/git/${skillSlug}.git`;
+		const repoUrl = `${origin}/api/git/${pluginSlug}.git`;
 		return `$skill-installer ${repoUrl}`;
-	}, [installer, marketplaceName, origin, skillSlug]);
+	}, [installer, marketplaceName, origin, pluginSlug]);
 
 	return (
 		<div className="relative z-10 flex items-center gap-2 rounded-lg border bg-muted/40 px-2.5 py-1.5">

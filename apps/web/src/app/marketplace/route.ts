@@ -1,32 +1,32 @@
-import { getMarketplaceConfig, getSkills } from "@/lib/skills";
+import { getMarketplaceConfig, getPlugins } from "@/lib/skills";
 
 export const dynamic = "force-dynamic";
 
 export function GET(request: Request) {
 	const config = getMarketplaceConfig();
-	const skills = getSkills();
+	const plugins = getPlugins();
 	const origin = new URL(request.url).origin;
 
-	const plugins = skills.map((skill) => ({
-		name: skill.slug,
+	const marketplacePlugins = plugins.map((plugin) => ({
+		name: plugin.slug,
 		source: {
 			source: "url",
-			url: `${origin}/api/git/${skill.slug}.git`,
+			url: `${origin}/api/git/${plugin.slug}.git`,
 		},
-		description: skill.description,
-		version: skill.version,
-		author: skill.author ? { name: skill.author } : undefined,
-		category: skill.category,
-		tags: skill.tags,
-		license: skill.license,
-		homepage: skill.homepage,
+		description: plugin.description,
+		version: plugin.version,
+		author: { name: plugin.author.name },
+		category: plugin.category,
+		tags: plugin.tags,
+		license: plugin.license,
+		homepage: plugin.homepage,
 	}));
 
 	const marketplace = {
 		name: config.name,
 		owner: config.owner,
 		metadata: config.metadata,
-		plugins,
+		plugins: marketplacePlugins,
 	};
 
 	return Response.json(marketplace, {

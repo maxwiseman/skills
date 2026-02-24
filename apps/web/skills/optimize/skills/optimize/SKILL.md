@@ -1,12 +1,8 @@
 ---
 name: optimize
 description: Identify and fix performance bottlenecks in the selected code
-version: 1.0.0
-category: performance
-tags: [performance, optimization, profiling, memory]
-author: Skills Marketplace
-license: MIT
 ---
+
 
 Analyze the selected code for performance issues and suggest optimizations.
 

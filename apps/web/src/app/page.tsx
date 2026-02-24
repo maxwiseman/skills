@@ -1,12 +1,16 @@
 import MarketplaceBrowser from "@/components/marketplace-browser";
-import { getCategories, getMarketplaceConfig, getSkills } from "@/lib/skills";
+import { getCategories, getMarketplaceConfig, getPlugins } from "@/lib/skills";
 
 export const dynamic = "force-dynamic";
 
 export default function Home() {
-	const skills = getSkills();
+	const plugins = getPlugins();
 	const config = getMarketplaceConfig();
-	const categories = getCategories(skills);
+	const categories = getCategories(plugins);
+	const skillCount = plugins.reduce(
+		(total, plugin) => total + plugin.skills.length,
+		0
+	);
 
 	return (
 		<div className="flex flex-col">
@@ -22,7 +26,9 @@ export default function Home() {
 					</h1>
 					<p className="text-muted-foreground">{config.metadata.description}</p>
 					<div className="mt-3 flex items-center gap-4 text-muted-foreground text-sm">
-						<span>{skills.length} skills</span>
+						<span>{plugins.length} plugins</span>
+						<span>·</span>
+						<span>{skillCount} skills</span>
 						<span>·</span>
 						<span>{categories.length} categories</span>
 						<span>·</span>
@@ -33,7 +39,7 @@ export default function Home() {
 			<MarketplaceBrowser
 				categories={categories}
 				marketplaceName={config.name}
-				skills={skills}
+				plugins={plugins}
 			/>
 		</div>
 	);

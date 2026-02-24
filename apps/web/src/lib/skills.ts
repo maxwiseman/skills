@@ -1,60 +1,40 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { parse as parseYaml } from "yaml";
+import { basename, join } from "node:path";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import type {
+	CodexInterfaceConfig,
+	PluginMetadata,
+	PluginSkillDefaults,
+} from "@/lib/plugin-metadata";
+import { PLUGIN_REGISTRY } from "@/plugins/registry";
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
+const SKILL_MARKDOWN_PATH_RE = /^skills\/[^/]+\/SKILL\.md$/u;
 const TABLER_ICON_URL =
 	"https://cdn.jsdelivr.net/npm/@tabler/icons@3.21.0/icons/outline";
 const TABLER_ICON_NAME_RE = /^[a-z0-9-]+$/;
 const tablerIconCache = new Map<string, Promise<string | undefined>>();
 
-export interface CodexTool {
-	description?: string;
-	transport?: string;
-	type: string;
-	url?: string;
-	value: string;
-}
-
-export interface CodexMetadata {
-	dependencies?: {
-		tools?: CodexTool[];
-	};
-	interface?: {
-		brand_color?: string;
-		default_prompt?: string;
-		display_name?: string;
-		icon_large?: string;
-		icon_small?: string;
-		short_description?: string;
-	};
-	policy?: {
-		allow_implicit_invocation?: boolean;
-	};
-}
-
-export interface SkillFrontmatter {
-	author: string;
-	category: string;
-	description: string;
-	homepage?: string;
-	icon?: string;
-	license?: string;
-	name: string;
-	tags: string[];
-	version: string;
-}
-
-export interface Skill extends SkillFrontmatter {
-	codex?: CodexMetadata;
+export interface PluginSkill {
 	content: string;
+	description: string;
+	name: string;
 	slug: string;
+}
+
+export interface Plugin extends PluginMetadata {
+	skills: PluginSkill[];
 }
 
 export interface MarketplaceConfig {
 	metadata: { description: string; version: string };
 	name: string;
-	owner: { name: string; email?: string };
+	owner: { email?: string; name: string };
+}
+
+export interface PluginFile {
+	content: string;
+	path: string;
 }
 
 function parseFrontmatter(raw: string): {
@@ -67,16 +47,16 @@ function parseFrontmatter(raw: string): {
 	}
 
 	try {
-		const parsed = parseYaml(match[1]);
+		const parsed = parseYaml(match[1] ?? "");
 		return {
 			data:
 				parsed && typeof parsed === "object"
 					? (parsed as Record<string, unknown>)
 					: {},
-			content: match[2],
+			content: match[2] ?? "",
 		};
 	} catch {
-		return { data: {}, content: match[2] };
+		return { data: {}, content: match[2] ?? "" };
 	}
 }
 
@@ -108,66 +88,193 @@ function fetchTablerIconSvg(iconName: string): Promise<string | undefined> {
 	return request;
 }
 
-function buildGeneratedOpenAIYaml(skill: Skill, iconPath?: string): string {
-	const name = escapeYamlString(skill.name);
-	const description = escapeYamlString(skill.description);
-	let yaml =
-		"interface:\n" +
-		`  display_name: "${name}"\n` +
-		`  short_description: "${description}"\n`;
+function renderGeneratedSkillFrontmatter(
+	skill: PluginSkill,
+	defaults: PluginSkillDefaults
+): string {
+	const frontmatter: Record<string, string> = {
+		name: skill.name,
+		description: skill.description,
+	};
 
-	if (iconPath) {
-		const safePath = escapeYamlString(iconPath);
-		yaml += `  icon_large: "${safePath}"\n`;
-		yaml += `  icon_small: "${safePath}"\n`;
+	for (const [key, value] of Object.entries(defaults)) {
+		if (typeof value === "string" && value.length > 0) {
+			frontmatter[key] = value;
+		}
 	}
 
-	return yaml;
+	return `---\n${stringifyYaml(frontmatter)}---\n\n${skill.content}`;
 }
 
-export function getSkills(): Skill[] {
-	const skillsDir = join(process.cwd(), "skills");
-	if (!existsSync(skillsDir)) {
+function buildGeneratedOpenAIYaml(plugin: Plugin, iconPath?: string): string {
+	const normalizePath = (value: string) =>
+		value.startsWith("./") ? value.slice(2) : value;
+
+	const fallbackInterface: CodexInterfaceConfig = {
+		display_name: plugin.name,
+		short_description: plugin.description,
+	};
+
+	const interfaceBlock = {
+		...fallbackInterface,
+		...plugin.codex?.interface,
+	};
+
+	if (iconPath) {
+		interfaceBlock.icon_large ??= iconPath;
+		interfaceBlock.icon_small ??= iconPath;
+	}
+	if (interfaceBlock.icon_large) {
+		interfaceBlock.icon_large = normalizePath(interfaceBlock.icon_large);
+	}
+	if (interfaceBlock.icon_small) {
+		interfaceBlock.icon_small = normalizePath(interfaceBlock.icon_small);
+	}
+
+	const payload = {
+		interface: interfaceBlock,
+		...(plugin.codex?.policy ? { policy: plugin.codex.policy } : {}),
+		...(plugin.codex?.dependencies
+			? { dependencies: plugin.codex.dependencies }
+			: {}),
+	};
+
+	return stringifyYaml(payload);
+}
+
+function getPluginDir(slug: string): string {
+	return join(process.cwd(), "skills", slug);
+}
+
+function shouldIgnoreGeneratedPath(path: string): boolean {
+	return (
+		path === "agents/openai.yaml" ||
+		path === ".lsp.json" ||
+		path.startsWith(".claude-plugin/")
+	);
+}
+
+function listPluginSourceFiles(slug: string): PluginFile[] {
+	const pluginDir = getPluginDir(slug);
+	if (!existsSync(pluginDir)) {
 		return [];
 	}
 
-	const entries = readdirSync(skillsDir, { withFileTypes: true });
-	const skills: Skill[] = [];
+	const files: PluginFile[] = [];
 
-	for (const entry of entries) {
-		if (!entry.isDirectory()) {
-			continue;
+	function walk(dir: string, prefix: string) {
+		for (const entry of readdirSync(dir, { withFileTypes: true })) {
+			const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+			if (entry.isDirectory()) {
+				walk(join(dir, entry.name), rel);
+			} else if (!shouldIgnoreGeneratedPath(rel)) {
+				files.push({
+					path: rel,
+					content: readFileSync(join(dir, entry.name), "utf-8"),
+				});
+			}
 		}
-		const skillFile = join(skillsDir, entry.name, "SKILL.md");
-		if (!existsSync(skillFile)) {
-			continue;
+	}
+
+	walk(pluginDir, "");
+	return files.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+function readPluginSkills(slug: string): PluginSkill[] {
+	const skillsDir = join(getPluginDir(slug), "skills");
+	if (!existsSync(skillsDir)) {
+		throw new Error(`Plugin ${slug} is missing a skills directory`);
+	}
+
+	const entries = readdirSync(skillsDir, { withFileTypes: true }).filter(
+		(entry) => entry.isDirectory()
+	);
+
+	if (entries.length === 0) {
+		throw new Error(`Plugin ${slug} must contain at least one skill`);
+	}
+
+	const skills = entries.map((entry) => {
+		const skillSlug = entry.name;
+		const skillPath = join(skillsDir, skillSlug, "SKILL.md");
+		if (!existsSync(skillPath)) {
+			throw new Error(`Plugin ${slug} is missing skills/${skillSlug}/SKILL.md`);
 		}
 
-		const raw = readFileSync(skillFile, "utf-8");
+		const raw = readFileSync(skillPath, "utf-8");
 		const { data, content } = parseFrontmatter(raw);
+		const name = (data.name as string | undefined)?.trim() ?? skillSlug;
+		const description = (data.description as string | undefined)?.trim() ?? "";
 
-		const codexFile = join(skillsDir, entry.name, "agents", "openai.yaml");
-		const codex = existsSync(codexFile)
-			? (parseYaml(readFileSync(codexFile, "utf-8")) as CodexMetadata)
-			: undefined;
-
-		skills.push({
-			slug: entry.name,
-			name: (data.name as string) || entry.name,
-			description: (data.description as string) || "",
-			version: (data.version as string) || "1.0.0",
-			category: (data.category as string) || "general",
-			tags: (data.tags as string[]) || [],
-			author: (data.author as string) || "",
-			license: data.license as string | undefined,
-			homepage: data.homepage as string | undefined,
-			icon: data.icon as string | undefined,
+		return {
+			slug: skillSlug,
+			name,
+			description,
 			content,
-			codex,
-		});
+		};
+	});
+
+	const seen = new Set<string>();
+	for (const skill of skills) {
+		if (seen.has(skill.slug)) {
+			throw new Error(`Plugin ${slug} has duplicate skill slug ${skill.slug}`);
+		}
+		seen.add(skill.slug);
 	}
 
 	return skills.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function validatePluginMetadata(metadata: PluginMetadata[]): void {
+	const slugs = new Set<string>();
+
+	for (const plugin of metadata) {
+		if (plugin.category.trim().length === 0) {
+			throw new Error(`Plugin ${plugin.slug} is missing category`);
+		}
+		if (!Array.isArray(plugin.tags) || plugin.tags.length === 0) {
+			throw new Error(`Plugin ${plugin.slug} is missing tags`);
+		}
+		if (slugs.has(plugin.slug)) {
+			throw new Error(`Duplicate plugin slug ${plugin.slug}`);
+		}
+		slugs.add(plugin.slug);
+	}
+}
+
+export function validatePluginStructure(plugin: Plugin): void {
+	const pluginDir = getPluginDir(plugin.slug);
+	if (!existsSync(pluginDir)) {
+		throw new Error(`Plugin folder does not exist: ${plugin.slug}`);
+	}
+
+	if (basename(pluginDir) !== plugin.slug) {
+		throw new Error(`Plugin slug mismatch for ${plugin.slug}`);
+	}
+
+	if (plugin.skills.length === 0) {
+		throw new Error(`Plugin ${plugin.slug} has no skills`);
+	}
+}
+
+export function getPlugins(): Plugin[] {
+	validatePluginMetadata(PLUGIN_REGISTRY);
+
+	const plugins = PLUGIN_REGISTRY.map((metadata) => {
+		const skills = readPluginSkills(metadata.slug);
+		const plugin: Plugin = {
+			...metadata,
+			skills,
+		};
+		validatePluginStructure(plugin);
+		return plugin;
+	});
+
+	return plugins.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function getPluginBySlug(slug: string): Plugin | undefined {
+	return getPlugins().find((plugin) => plugin.slug === slug);
 }
 
 export function getMarketplaceConfig(): MarketplaceConfig {
@@ -185,49 +292,146 @@ export function getMarketplaceConfig(): MarketplaceConfig {
 	return JSON.parse(readFileSync(configPath, "utf-8")) as MarketplaceConfig;
 }
 
-export function getCategories(skills: Skill[]): string[] {
-	const cats = new Set(skills.map((s) => s.category));
-	return Array.from(cats).sort();
+export function getCategories(plugins: Plugin[]): string[] {
+	const categories = new Set(plugins.map((plugin) => plugin.category));
+	return Array.from(categories).sort();
 }
 
-export interface SkillFile {
-	content: string;
-	path: string;
+export function getPluginFiles(slug: string): PluginFile[] {
+	return listPluginSourceFiles(slug);
 }
 
-export function getSkillFiles(slug: string): SkillFile[] {
-	const skillDir = join(process.cwd(), "skills", slug);
-	if (!existsSync(skillDir)) {
-		return [];
+function buildPluginJson(plugin: Plugin): string {
+	return JSON.stringify(
+		{
+			name: plugin.slug,
+			description: plugin.description,
+			version: plugin.version,
+			...(plugin.claude?.lspServers
+				? { lspServers: plugin.claude.lspServers }
+				: {}),
+		},
+		null,
+		2
+	);
+}
+
+function withPrefix(path: string, prefix: string): string {
+	return prefix ? `${prefix}/${path}` : path;
+}
+
+function isGeneratedSkillMarkdown(path: string): boolean {
+	return SKILL_MARKDOWN_PATH_RE.test(path);
+}
+
+function buildGeneratedCommandFile(
+	skill: PluginSkill,
+	prefix: string
+): PluginFile {
+	return {
+		path: withPrefix(`commands/${skill.slug}.md`, prefix),
+		content:
+			`---\ndescription: ${escapeYamlString(skill.description)}\n---\n\n` +
+			skill.content,
+	};
+}
+
+function buildGeneratedSkillFile(
+	plugin: Plugin,
+	skill: PluginSkill,
+	prefix: string
+): PluginFile {
+	return {
+		path: withPrefix(`skills/${skill.slug}/SKILL.md`, prefix),
+		content: renderGeneratedSkillFrontmatter(skill, {
+			version: plugin.version,
+			...plugin.skillDefaults,
+		}),
+	};
+}
+
+function collectPluginSourceFiles(
+	plugin: Plugin,
+	prefix: string
+): PluginFile[] {
+	const rawFiles = listPluginSourceFiles(plugin.slug);
+	return rawFiles
+		.filter((file) => file.path !== "metadata.ts")
+		.filter((file) => !isGeneratedSkillMarkdown(file.path))
+		.map((file) => ({
+			path: withPrefix(file.path, prefix),
+			content: file.content,
+		}));
+}
+
+async function maybeAppendGeneratedIconFile(
+	plugin: Plugin,
+	files: PluginFile[],
+	prefix: string
+): Promise<void> {
+	const iconPath = withPrefix("assets/icon.svg", prefix);
+	const hasIconFile = files.some((file) => file.path === iconPath);
+	const iconName = plugin.icon?.trim().toLowerCase();
+
+	if (hasIconFile || !iconName || !TABLER_ICON_NAME_RE.test(iconName)) {
+		return;
 	}
 
-	const files: SkillFile[] = [];
+	const svg = await fetchTablerIconSvg(iconName);
+	if (svg) {
+		files.push({ path: iconPath, content: svg });
+	}
+}
 
-	function walk(dir: string, prefix: string) {
-		for (const entry of readdirSync(dir, { withFileTypes: true })) {
-			const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
-			if (entry.isDirectory()) {
-				walk(join(dir, entry.name), rel);
-			} else {
-				files.push({
-					path: rel,
-					content: readFileSync(join(dir, entry.name), "utf-8"),
-				});
-			}
-		}
+function appendGeneratedMetadataFiles(
+	plugin: Plugin,
+	files: PluginFile[],
+	prefix: string
+): void {
+	const iconFilePath = withPrefix("assets/icon.svg", prefix);
+	const hasIconFile = files.some((file) => file.path === iconFilePath);
+	const iconPath = hasIconFile ? "assets/icon.svg" : undefined;
+
+	files.push({
+		path: withPrefix("agents/openai.yaml", prefix),
+		content: buildGeneratedOpenAIYaml(plugin, iconPath),
+	});
+	files.push({
+		path: withPrefix(".claude-plugin/plugin.json", prefix),
+		content: buildPluginJson(plugin),
+	});
+
+	if (plugin.claude?.lspServers) {
+		files.push({
+			path: withPrefix(".lsp.json", prefix),
+			content: JSON.stringify(plugin.claude.lspServers, null, 2),
+		});
+	}
+}
+
+async function buildPluginExportFiles(
+	plugin: Plugin,
+	prefix = ""
+): Promise<PluginFile[]> {
+	const files = collectPluginSourceFiles(plugin, prefix);
+
+	for (const skill of plugin.skills) {
+		files.push(buildGeneratedCommandFile(skill, prefix));
+		files.push(buildGeneratedSkillFile(plugin, skill, prefix));
 	}
 
-	walk(skillDir, "");
+	await maybeAppendGeneratedIconFile(plugin, files, prefix);
+	appendGeneratedMetadataFiles(plugin, files, prefix);
+
 	return files.sort((a, b) => a.path.localeCompare(b.path));
 }
 
 export async function getMarketplaceGitFiles(
-	skills: Skill[],
+	plugins: Plugin[],
 	config: MarketplaceConfig
-): Promise<SkillFile[]> {
-	const files: SkillFile[] = [];
+): Promise<PluginFile[]> {
+	const files: PluginFile[] = [];
 
-	// plugin.json at repo root (required alongside marketplace.json)
 	files.push({
 		path: ".claude-plugin/plugin.json",
 		content: JSON.stringify(
@@ -237,137 +441,46 @@ export async function getMarketplaceGitFiles(
 		),
 	});
 
-	// Root marketplace catalog with relative-path sources (git-based marketplace)
 	const catalog = JSON.stringify(
 		{
 			name: config.name,
 			owner: config.owner,
 			metadata: config.metadata,
-			plugins: skills.map((skill) => ({
-				name: skill.slug,
-				source: `./plugins/${skill.slug}`,
-				description: skill.description,
-				version: skill.version,
-				category: skill.category,
-				tags: skill.tags.length > 0 ? skill.tags : undefined,
-				author: skill.author ? { name: skill.author } : undefined,
-				license: skill.license ?? undefined,
-				homepage: skill.homepage ?? undefined,
+			plugins: plugins.map((plugin) => ({
+				name: plugin.slug,
+				source: `./plugins/${plugin.slug}`,
+				description: plugin.description,
+				version: plugin.version,
+				category: plugin.category,
+				tags: plugin.tags.length > 0 ? plugin.tags : undefined,
+				author: plugin.author?.name ? { name: plugin.author.name } : undefined,
+				license: plugin.license ?? undefined,
+				homepage: plugin.homepage ?? undefined,
 			})),
 		},
 		null,
 		2
 	);
+
 	files.push({ path: ".claude-plugin/marketplace.json", content: catalog });
 
-	for (const skill of skills) {
-		const skillFiles = getSkillFiles(skill.slug);
-		const prefix = `plugins/${skill.slug}`;
-		const iconName = skill.icon?.trim().toLowerCase();
-
-		for (const f of skillFiles) {
-			if (f.path === "SKILL.md") {
-				// Convert SKILL.md to a Claude Code command file — strip marketplace
-				// frontmatter fields, keep only description + body content.
-				const commandMd = `---\ndescription: ${skill.description}\n---\n\n${skill.content}`;
-				files.push({
-					path: `${prefix}/commands/${skill.slug}.md`,
-					content: commandMd,
-				});
-			} else {
-				files.push({ path: `${prefix}/${f.path}`, content: f.content });
-			}
-		}
-
-		const skillHasIconFile = skillFiles.some(
-			(f) => f.path === "assets/icon.svg"
+	for (const plugin of plugins) {
+		const pluginFiles = await buildPluginExportFiles(
+			plugin,
+			`plugins/${plugin.slug}`
 		);
-		if (!skillHasIconFile && iconName && TABLER_ICON_NAME_RE.test(iconName)) {
-			const svg = await fetchTablerIconSvg(iconName);
-			if (svg) {
-				files.push({
-					path: `${prefix}/assets/icon.svg`,
-					content: svg,
-				});
-			}
-		}
-
-		// Inject plugin.json if not on disk
-		if (!skillFiles.some((f) => f.path === ".claude-plugin/plugin.json")) {
-			files.push({
-				path: `${prefix}/.claude-plugin/plugin.json`,
-				content: JSON.stringify(
-					{
-						name: skill.slug,
-						description: skill.description,
-						version: skill.version,
-					},
-					null,
-					2
-				),
-			});
-		}
-
-		// Inject agents/openai.yaml if not on disk
-		if (!skillFiles.some((f) => f.path === "agents/openai.yaml")) {
-			const hasVirtualIconFile = files.some(
-				(f) => f.path === `${prefix}/assets/icon.svg`
-			);
-			const iconPath =
-				skillHasIconFile || hasVirtualIconFile ? "assets/icon.svg" : undefined;
-			files.push({
-				path: `${prefix}/agents/openai.yaml`,
-				content: buildGeneratedOpenAIYaml(skill, iconPath),
-			});
-		}
+		files.push(...pluginFiles);
 	}
 
 	return files.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-export async function getSkillGitFiles(
+export async function getPluginGitFiles(
 	slug: string,
-	skill: Skill
-): Promise<SkillFile[]> {
-	const rawFiles = getSkillFiles(slug);
-	const iconName = skill.icon?.trim().toLowerCase();
-
-	// Move SKILL.md to skills/{slug}/SKILL.md so Claude Code auto-discovers it
-	// as a /{slug} slash command (the documented plugin structure).
-	const files: SkillFile[] = rawFiles.map((f) =>
-		f.path === "SKILL.md" ? { ...f, path: `skills/${slug}/SKILL.md` } : f
-	);
-	const hasIconFile = files.some((f) => f.path === "assets/icon.svg");
-	if (!hasIconFile && iconName && TABLER_ICON_NAME_RE.test(iconName)) {
-		const svg = await fetchTablerIconSvg(iconName);
-		if (svg) {
-			files.push({ path: "assets/icon.svg", content: svg });
-		}
+	plugin: Plugin
+): Promise<PluginFile[]> {
+	if (plugin.slug !== slug) {
+		throw new Error(`Plugin slug mismatch for ${slug}`);
 	}
-
-	// Inject agents/openai.yaml if not present on disk
-	const hasOpenAIYaml = files.some((f) => f.path === "agents/openai.yaml");
-	if (!hasOpenAIYaml) {
-		const hasVirtualIconFile = files.some((f) => f.path === "assets/icon.svg");
-		const iconPath =
-			hasIconFile || hasVirtualIconFile ? "assets/icon.svg" : undefined;
-		const yaml = buildGeneratedOpenAIYaml(skill, iconPath);
-		files.push({ path: "agents/openai.yaml", content: yaml });
-	}
-
-	// Inject .claude-plugin/plugin.json — required for Claude Code to recognise
-	// the repo as a plugin. No commands field needed; auto-discovery handles it.
-	const hasPluginJson = files.some(
-		(f) => f.path === ".claude-plugin/plugin.json"
-	);
-	if (!hasPluginJson) {
-		const pluginJson = JSON.stringify(
-			{ name: slug, description: skill.description, version: skill.version },
-			null,
-			2
-		);
-		files.push({ path: ".claude-plugin/plugin.json", content: pluginJson });
-	}
-
-	return files.sort((a, b) => a.path.localeCompare(b.path));
+	return await buildPluginExportFiles(plugin);
 }

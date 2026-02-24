@@ -1,12 +1,8 @@
 ---
 name: test
 description: Generate comprehensive unit tests for the selected code
-version: 1.0.0
-category: testing
-tags: [testing, unit-tests, coverage, tdd]
-author: Skills Marketplace
-license: MIT
 ---
+
 
 Write tests for the selected code.
 

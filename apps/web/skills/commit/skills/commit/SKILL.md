@@ -1,12 +1,8 @@
 ---
 name: commit
 description: Generate a conventional commit message from staged changes
-version: 1.0.0
-category: git
-tags: [git, commit, conventional-commits, changelog]
-author: Skills Marketplace
-license: MIT
 ---
+
 
 Look at the staged git diff and write a conventional commit message.
 
