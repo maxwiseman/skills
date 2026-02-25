@@ -31,8 +31,6 @@ export default function Home() {
 						<span>{skillCount} skills</span>
 						<span>·</span>
 						<span>{categories.length} categories</span>
-						<span>·</span>
-						<span>by {config.owner.name}</span>
 					</div>
 				</div>
 			</div>

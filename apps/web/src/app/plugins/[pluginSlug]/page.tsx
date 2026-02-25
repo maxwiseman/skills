@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import InstallCommandBox from "@/components/install-command-box";
 import SkillContent from "@/components/skill-content";
 import { SkillFileTree } from "@/components/skill-file-tree";
+import { Separator } from "@/components/ui/separator";
 import {
 	getMarketplaceConfig,
 	getPluginBySlug,
@@ -74,20 +75,22 @@ export default async function PluginPage({ params }: Props) {
 			: [];
 
 	return (
-		<div className="px-6 py-6">
-			<div className="mx-auto max-w-3xl">
+		<div className="px-6 py-8">
+			<div className="mx-auto max-w-4xl">
 				<Link
-					className="mb-6 inline-flex items-center gap-1.5 text-muted-foreground text-sm hover:text-foreground"
+					className="mb-5 inline-flex items-center gap-1.5 text-muted-foreground text-sm hover:text-foreground"
 					href="/"
 				>
 					<ArrowLeft className="h-3.5 w-3.5" />
 					Back to marketplace
 				</Link>
 
-				<div className="mb-6">
-					<div className="mb-2 flex flex-wrap items-baseline gap-3">
-						<h1 className="font-mono font-semibold text-2xl">/{plugin.slug}</h1>
-						<span className="font-mono text-muted-foreground text-sm">
+				<div className="">
+					<div className="mb-2 flex flex-wrap items-center gap-3">
+						<h1 className="font-mono font-semibold text-3xl tracking-tight">
+							/{plugin.slug}
+						</h1>
+						<span className="rounded-full border px-2 py-0.5 font-mono text-muted-foreground text-xs">
 							v{plugin.version}
 						</span>
 						<span className="rounded-full border px-2 py-0.5 text-xs capitalize">
@@ -95,13 +98,15 @@ export default async function PluginPage({ params }: Props) {
 						</span>
 					</div>
 
-					<p className="text-muted-foreground">{plugin.description}</p>
+					<p className="max-w-3xl text-muted-foreground">
+						{plugin.description}
+					</p>
 
 					{plugin.tags.length > 0 && (
-						<div className="mt-3 flex flex-wrap gap-1.5">
+						<div className="my-4 flex flex-wrap gap-1.5">
 							{plugin.tags.map((tag) => (
 								<span
-									className="rounded border px-2 py-0.5 font-mono text-muted-foreground text-xs"
+									className="rounded border bg-background px-2 py-0.5 font-mono text-muted-foreground text-xs"
 									key={tag}
 								>
 									{tag}
@@ -110,22 +115,66 @@ export default async function PluginPage({ params }: Props) {
 						</div>
 					)}
 
-					<div className="mt-4">
+					<InstallCommandBox
+						marketplaceName={config.name}
+						pluginSlug={plugin.slug}
+					/>
+					{/*<div className="mt-5 flex flex-wrap items-center gap-4 border-t pt-4 text-muted-foreground text-xs">
+						<span className="inline-flex items-center gap-1.5">
+							<Box className="size-3.5" />
+							{plugin.skills.length}{" "}
+							{plugin.skills.length === 1 ? "skill" : "skills"}
+						</span>
+						<span className="inline-flex items-center gap-1.5">
+							<FolderTree className="size-3.5" />
+							{pluginLevelFiles.length} shared{" "}
+							{pluginLevelFiles.length === 1 ? "file" : "files"}
+						</span>
+					</div>*/}
+				</div>
+
+				{/*<div className="mt-4 py-1 sm:py-2">
+					<div className="font-semibold text-2xl tracking-tight">
+						Installation
+					</div>
+					<div className="text-muted-foreground">
+						Install this plugin for Claude or Codex
+					</div>
+					<div className="mt-3">
 						<InstallCommandBox
 							marketplaceName={config.name}
 							pluginSlug={plugin.slug}
 						/>
 					</div>
-				</div>
+				</div>*/}
 
-				<div className="space-y-4">
+				<div className="mt-6 space-y-4">
 					{isSingleSkillPlugin
 						? singleSkillCombinedFiles.length > 0 && (
-								<SkillFileTree files={singleSkillCombinedFiles} />
+								<div className="space-y-2">
+									{/*<h2 className="font-semibold text-2xl tracking-tight">
+										Files
+									</h2>*/}
+									<SkillFileTree
+										files={singleSkillCombinedFiles}
+										header={false}
+									/>
+								</div>
 							)
 						: pluginLevelFiles.length > 0 && (
-								<SkillFileTree files={pluginLevelFiles} />
+								<div className="space-y-2">
+									{/*<h2 className="font-semibold text-2xl tracking-tight">
+										Plugin Files
+									</h2>*/}
+									<SkillFileTree files={pluginLevelFiles} header={false} />
+								</div>
 							)}
+
+					{/*<div className="mt-2 mb-2 font-semibold text-xl tracking-tight">
+						Skills ({plugin.skills.length})
+					</div>*/}
+
+					<Separator className="my-12" />
 
 					{plugin.skills.map((skill) => {
 						const skillFiles = visibleFiles
@@ -141,7 +190,7 @@ export default async function PluginPage({ params }: Props) {
 							plugin.skills.length === 1
 						) {
 							return (
-								<div className="space-y-4 border-t py-8">
+								<div key={skill.slug}>
 									<SkillContent content={skill.content} />
 								</div>
 							);
@@ -149,22 +198,24 @@ export default async function PluginPage({ params }: Props) {
 
 						return (
 							<details
-								className="group overflow-hidden rounded-lg border"
+								className="group overflow-hidden rounded-xl border bg-card"
 								key={skill.slug}
 							>
-								<summary className="flex cursor-pointer list-none items-center justify-between gap-2 bg-muted/30 px-4 py-3">
+								<summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-muted/40 px-4 py-3.5">
 									<div>
-										<div className="font-mono text-sm">/{skill.slug}</div>
+										<div className="font-medium font-mono text-sm">
+											/{skill.slug}
+										</div>
 										{skill.description !== plugin.description && (
-											<p className="text-muted-foreground text-sm">
+											<p className="mt-0.5 text-muted-foreground text-sm">
 												{skill.description}
 											</p>
 										)}
 									</div>
-									<span className="text-muted-foreground text-xs group-open:hidden">
+									<span className="rounded border bg-background px-2 py-1 text-muted-foreground text-xs group-open:hidden">
 										Expand
 									</span>
-									<span className="hidden text-muted-foreground text-xs group-open:inline">
+									<span className="hidden rounded border bg-background px-2 py-1 text-muted-foreground text-xs group-open:inline">
 										Collapse
 									</span>
 								</summary>
